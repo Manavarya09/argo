@@ -1,1 +1,2 @@
-pub fn placeholder() {}
+mod app;
+pub use app::ArgoApp;

@@ -9,7 +9,7 @@ argo-ui = { path = "../argo-ui" }
 anyhow.workspace = true
 tokio.workspace = true
 tracing.workspace = true
-tracing-subscriber.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
 
 [[bin]]
 name = "argo"

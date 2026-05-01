@@ -8,12 +8,17 @@ use gpui::{
 };
 use std::sync::{Arc, Mutex};
 
+const CELL_W_PX: f32 = 8.4;
+const CELL_H_PX: f32 = 19.6;
+
 pub struct Pane {
     session: Arc<Mutex<PtySession>>,
     state: Arc<Mutex<TerminalState>>,
     palette: ColorPalette,
     typography: Typography,
     focus_handle: FocusHandle,
+    last_cols: Mutex<u16>,
+    last_rows: Mutex<u16>,
 }
 
 impl Pane {
@@ -26,6 +31,8 @@ impl Pane {
             palette: ColorPalette::dark(),
             typography: Typography::default_mono(),
             focus_handle: cx.focus_handle(),
+            last_cols: Mutex::new(cols),
+            last_rows: Mutex::new(rows),
         };
 
         cx.spawn(async move |this, cx| {
@@ -41,6 +48,21 @@ impl Pane {
         .detach();
 
         Ok(pane)
+    }
+
+    fn maybe_resize(&self, width_px: f32, height_px: f32) {
+        let cols = ((width_px / CELL_W_PX).floor() as u16).max(20);
+        let rows = ((height_px / CELL_H_PX).floor() as u16).max(5);
+        let mut last_c = self.last_cols.lock().unwrap();
+        let mut last_r = self.last_rows.lock().unwrap();
+        if *last_c != cols || *last_r != rows {
+            let mut session = self.session.lock().unwrap();
+            let mut state = self.state.lock().unwrap();
+            let _ = session.resize(cols, rows);
+            state.resize(cols, rows);
+            *last_c = cols;
+            *last_r = rows;
+        }
     }
 
     pub fn drain_pty_into_state(&self) {
@@ -78,7 +100,13 @@ impl Focusable for Pane {
 }
 
 impl Render for Pane {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let viewport = window.viewport_size();
+        let avail_width = f32::from(viewport.width) - 2.0 * Spacing::MD;
+        let avail_height =
+            f32::from(viewport.height) - Spacing::TITLEBAR_HEIGHT - 2.0 * Spacing::MD;
+        self.maybe_resize(avail_width, avail_height);
+
         self.drain_pty_into_state();
         let cells = {
             let state = self.state.lock().unwrap();

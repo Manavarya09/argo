@@ -83,6 +83,14 @@ impl Pane {
     }
 
     fn handle_key(&mut self, event: &KeyDownEvent, _window: &mut Window, cx: &mut Context<Self>) {
+        tracing::debug!(
+            key = %event.keystroke.key,
+            ctrl = event.keystroke.modifiers.control,
+            shift = event.keystroke.modifiers.shift,
+            alt = event.keystroke.modifiers.alt,
+            cmd = event.keystroke.modifiers.platform,
+            "pane key event"
+        );
         let bytes = key_event_to_bytes(event);
         if !bytes.is_empty() {
             let mut session = self.session.lock().unwrap();

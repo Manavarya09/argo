@@ -108,10 +108,14 @@ impl Render for Pane {
         self.maybe_resize(avail_width, avail_height);
 
         self.drain_pty_into_state();
-        let cells = {
+        let cells;
+        let cursor_pos;
+        {
             let state = self.state.lock().unwrap();
-            state.visible_cells()
-        };
+            cells = state.visible_cells();
+            cursor_pos = state.cursor_position();
+        }
+        let (cursor_col, cursor_row) = cursor_pos;
 
         let fg = self.fg_rgb();
         let bg = self.bg_rgb();
@@ -119,15 +123,22 @@ impl Render for Pane {
         let size_md = self.typography.size_md;
 
         let mut rows = Vec::with_capacity(cells.len());
-        for row in cells.iter() {
-            let line: String = row.iter().map(|c| c.ch).collect();
-            rows.push(
-                div()
+        for (row_idx, row) in cells.iter().enumerate() {
+            let mut row_children = Vec::with_capacity(row.len());
+            for (col_idx, cell) in row.iter().enumerate() {
+                let is_cursor =
+                    row_idx as u16 == cursor_row && col_idx as u16 == cursor_col;
+                let mut span = div()
                     .text_color(rgb(fg))
                     .font_family(mono_family)
                     .text_size(px(size_md))
-                    .child(line),
-            );
+                    .child(cell.ch.to_string());
+                if is_cursor {
+                    span = span.bg(rgb(fg)).text_color(rgb(bg));
+                }
+                row_children.push(span);
+            }
+            rows.push(div().flex().children(row_children));
         }
 
         let title = PaneTitleBar {

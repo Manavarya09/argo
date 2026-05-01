@@ -1,3 +1,4 @@
+use crate::titlebar::{PaneStatus, PaneTitleBar};
 use argo_pty::PtySession;
 use argo_terminal::TerminalState;
 use argo_theme::{ColorPalette, Spacing, Typography};
@@ -87,16 +88,32 @@ impl Render for Pane {
             );
         }
 
+        let title = PaneTitleBar {
+            provider: "shell".into(),
+            model: std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".into()),
+            cwd: std::env::current_dir()
+                .map(|p| p.display().to_string())
+                .unwrap_or_default(),
+            status: PaneStatus::Ready,
+        };
+
         div()
             .track_focus(&self.focus_handle)
             .on_key_down(cx.listener(Self::handle_key))
             .w_full()
             .h_full()
             .bg(rgb(bg))
-            .p(px(Spacing::MD))
             .flex()
             .flex_col()
-            .children(rows)
+            .child(title)
+            .child(
+                div()
+                    .flex_1()
+                    .p(px(Spacing::MD))
+                    .flex()
+                    .flex_col()
+                    .children(rows),
+            )
     }
 }
 

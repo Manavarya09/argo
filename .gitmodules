@@ -1,0 +1,3 @@
+[submodule "vendor/wezterm"]
+	path = vendor/wezterm
+	url = https://github.com/wezterm/wezterm.git

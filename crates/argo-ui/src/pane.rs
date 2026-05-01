@@ -38,10 +38,16 @@ impl Pane {
         cx.spawn(async move |this, cx| {
             loop {
                 cx.background_executor()
-                    .timer(std::time::Duration::from_millis(16))
+                    .timer(std::time::Duration::from_millis(33))
                     .await;
-                if this.update(cx, |_, cx| cx.notify()).is_err() {
-                    break;
+                let drained = match this.update(cx, |this, _| this.drain_pty_into_state()) {
+                    Ok(v) => v,
+                    Err(_) => break,
+                };
+                if drained {
+                    if this.update(cx, |_, cx| cx.notify()).is_err() {
+                        break;
+                    }
                 }
             }
         })
@@ -65,12 +71,15 @@ impl Pane {
         }
     }
 
-    pub fn drain_pty_into_state(&self) {
+    pub fn drain_pty_into_state(&self) -> bool {
         let session = self.session.lock().unwrap();
         let mut state = self.state.lock().unwrap();
+        let mut got_any = false;
         while let Some(chunk) = session.try_read() {
             state.feed(&chunk);
+            got_any = true;
         }
+        got_any
     }
 
     fn handle_key(&mut self, event: &KeyDownEvent, _window: &mut Window, cx: &mut Context<Self>) {
@@ -107,7 +116,6 @@ impl Render for Pane {
             f32::from(viewport.height) - Spacing::TITLEBAR_HEIGHT - 2.0 * Spacing::MD;
         self.maybe_resize(avail_width, avail_height);
 
-        self.drain_pty_into_state();
         let cells;
         let cursor_pos;
         {

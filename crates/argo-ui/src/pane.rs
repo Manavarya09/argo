@@ -132,21 +132,57 @@ impl Render for Pane {
 
         let mut rows = Vec::with_capacity(cells.len());
         for (row_idx, row) in cells.iter().enumerate() {
-            let mut row_children = Vec::with_capacity(row.len());
-            for (col_idx, cell) in row.iter().enumerate() {
-                let is_cursor =
-                    row_idx as u16 == cursor_row && col_idx as u16 == cursor_col;
-                let mut span = div()
-                    .text_color(rgb(fg))
-                    .font_family(mono_family)
-                    .text_size(px(size_md))
-                    .child(cell.ch.to_string());
-                if is_cursor {
-                    span = span.bg(rgb(fg)).text_color(rgb(bg));
-                }
-                row_children.push(span);
+            let row_has_cursor =
+                row_idx as u16 == cursor_row && (cursor_col as usize) < row.len();
+
+            if row_has_cursor {
+                let cur = cursor_col as usize;
+                let before: String = row[..cur].iter().map(|c| c.ch).collect();
+                let cursor_ch = row[cur].ch;
+                let cursor_str = if cursor_ch == ' ' || cursor_ch == '\0' {
+                    " ".to_string()
+                } else {
+                    cursor_ch.to_string()
+                };
+                let after: String = row[cur + 1..].iter().map(|c| c.ch).collect();
+
+                let line = div()
+                    .flex()
+                    .flex_row()
+                    .child(
+                        div()
+                            .text_color(rgb(fg))
+                            .font_family(mono_family)
+                            .text_size(px(size_md))
+                            .child(before),
+                    )
+                    .child(
+                        div()
+                            .bg(rgb(fg))
+                            .text_color(rgb(bg))
+                            .font_family(mono_family)
+                            .text_size(px(size_md))
+                            .child(cursor_str),
+                    )
+                    .child(
+                        div()
+                            .text_color(rgb(fg))
+                            .font_family(mono_family)
+                            .text_size(px(size_md))
+                            .child(after),
+                    );
+                rows.push(line);
+            } else {
+                let line_str: String = row.iter().map(|c| c.ch).collect();
+                let line = div().flex().flex_row().child(
+                    div()
+                        .text_color(rgb(fg))
+                        .font_family(mono_family)
+                        .text_size(px(size_md))
+                        .child(line_str),
+                );
+                rows.push(line);
             }
-            rows.push(div().flex().children(row_children));
         }
 
         let title = PaneTitleBar {

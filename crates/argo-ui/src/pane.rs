@@ -1,7 +1,10 @@
 use argo_pty::PtySession;
 use argo_terminal::TerminalState;
 use argo_theme::{ColorPalette, Spacing, Typography};
-use gpui::{Context, IntoElement, Window, div, prelude::*, px, rgb};
+use gpui::{
+    App, Context, FocusHandle, Focusable, IntoElement, KeyDownEvent, Window, div, prelude::*, px,
+    rgb,
+};
 use std::sync::{Arc, Mutex};
 
 pub struct Pane {
@@ -9,10 +12,11 @@ pub struct Pane {
     state: Arc<Mutex<TerminalState>>,
     palette: ColorPalette,
     typography: Typography,
+    focus_handle: FocusHandle,
 }
 
 impl Pane {
-    pub fn spawn_shell(cols: u16, rows: u16) -> anyhow::Result<Self> {
+    pub fn spawn_shell(cx: &mut Context<Self>, cols: u16, rows: u16) -> anyhow::Result<Self> {
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".into());
         let session = PtySession::spawn(&shell, &["-l"], cols, rows)?;
         Ok(Self {
@@ -20,6 +24,7 @@ impl Pane {
             state: Arc::new(Mutex::new(TerminalState::new(cols, rows))),
             palette: ColorPalette::dark(),
             typography: Typography::default_mono(),
+            focus_handle: cx.focus_handle(),
         })
     }
 
@@ -28,6 +33,15 @@ impl Pane {
         let mut state = self.state.lock().unwrap();
         while let Some(chunk) = session.try_read() {
             state.feed(&chunk);
+        }
+    }
+
+    fn handle_key(&mut self, event: &KeyDownEvent, _window: &mut Window, cx: &mut Context<Self>) {
+        let bytes = key_event_to_bytes(event);
+        if !bytes.is_empty() {
+            let mut session = self.session.lock().unwrap();
+            let _ = session.write(&bytes);
+            cx.notify();
         }
     }
 
@@ -42,8 +56,14 @@ impl Pane {
     }
 }
 
+impl Focusable for Pane {
+    fn focus_handle(&self, _cx: &App) -> FocusHandle {
+        self.focus_handle.clone()
+    }
+}
+
 impl Render for Pane {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.drain_pty_into_state();
         let cells = {
             let state = self.state.lock().unwrap();
@@ -68,6 +88,8 @@ impl Render for Pane {
         }
 
         div()
+            .track_focus(&self.focus_handle)
+            .on_key_down(cx.listener(Self::handle_key))
             .w_full()
             .h_full()
             .bg(rgb(bg))
@@ -76,4 +98,38 @@ impl Render for Pane {
             .flex_col()
             .children(rows)
     }
+}
+
+fn key_event_to_bytes(event: &KeyDownEvent) -> Vec<u8> {
+    let key = &event.keystroke.key;
+    let mods = &event.keystroke.modifiers;
+
+    if mods.control && key.len() == 1 {
+        let c = key.chars().next().unwrap().to_ascii_uppercase();
+        if ('A'..='Z').contains(&c) {
+            return vec![(c as u8) - b'A' + 1];
+        }
+    }
+
+    match key.as_str() {
+        "enter" => return b"\r".to_vec(),
+        "tab" => return b"\t".to_vec(),
+        "backspace" => return b"\x7f".to_vec(),
+        "escape" => return b"\x1b".to_vec(),
+        "up" => return b"\x1b[A".to_vec(),
+        "down" => return b"\x1b[B".to_vec(),
+        "right" => return b"\x1b[C".to_vec(),
+        "left" => return b"\x1b[D".to_vec(),
+        "home" => return b"\x1b[H".to_vec(),
+        "end" => return b"\x1b[F".to_vec(),
+        _ => {}
+    }
+
+    if let Some(text) = &event.keystroke.key_char {
+        return text.as_bytes().to_vec();
+    }
+    if key.chars().count() == 1 {
+        return key.as_bytes().to_vec();
+    }
+    Vec::new()
 }

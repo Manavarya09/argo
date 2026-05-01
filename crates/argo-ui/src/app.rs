@@ -1,8 +1,8 @@
 use crate::pane::Pane;
 use argo_theme::ColorPalette;
 use gpui::{
-    App, Application, Bounds, Context, Entity, Window, WindowBounds, WindowOptions, div, point,
-    prelude::*, px, rgb, size,
+    App, Application, Bounds, Context, Entity, Focusable, Window, WindowBounds, WindowOptions,
+    div, point, prelude::*, px, rgb, size,
 };
 
 pub struct ArgoApp {
@@ -14,20 +14,28 @@ impl ArgoApp {
     pub fn launch() {
         Application::new().run(|cx: &mut App| {
             let bounds = Bounds::new(point(px(200.), px(100.)), size(px(1280.), px(800.)));
-            cx.open_window(
-                WindowOptions {
-                    window_bounds: Some(WindowBounds::Windowed(bounds)),
-                    ..Default::default()
-                },
-                |_, cx| {
-                    let pane = cx.new(|_| Pane::spawn_shell(120, 36).expect("spawn shell"));
-                    cx.new(|_| ArgoApp {
-                        palette: ColorPalette::dark(),
-                        pane,
-                    })
-                },
-            )
-            .unwrap();
+            let window = cx
+                .open_window(
+                    WindowOptions {
+                        window_bounds: Some(WindowBounds::Windowed(bounds)),
+                        ..Default::default()
+                    },
+                    |_, cx| {
+                        let pane = cx
+                            .new(|cx_view| Pane::spawn_shell(cx_view, 120, 36).expect("spawn shell"));
+                        cx.new(|_| ArgoApp {
+                            palette: ColorPalette::dark(),
+                            pane,
+                        })
+                    },
+                )
+                .unwrap();
+            window
+                .update(cx, |view, window, cx| {
+                    let handle = view.pane.read(cx).focus_handle(cx);
+                    window.focus(&handle);
+                })
+                .ok();
             cx.activate(true);
         });
     }

@@ -12,3 +12,7 @@ tracing.workspace = true
 # satisfy AsFd bounds against std::os::fd::OwnedFd. Without this, the
 # upstream alacritty_terminal 0.24.2 fails to compile on macOS.
 rustix = { version = "0.38", default-features = false, features = ["std", "fs", "termios"] }
+
+[dev-dependencies]
+argo-pty = { path = "../argo-pty" }
+tokio = { version = "1", features = ["full", "test-util"] }

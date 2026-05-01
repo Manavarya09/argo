@@ -20,13 +20,27 @@ impl Pane {
     pub fn spawn_shell(cx: &mut Context<Self>, cols: u16, rows: u16) -> anyhow::Result<Self> {
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".into());
         let session = PtySession::spawn(&shell, &["-l"], cols, rows)?;
-        Ok(Self {
+        let pane = Self {
             session: Arc::new(Mutex::new(session)),
             state: Arc::new(Mutex::new(TerminalState::new(cols, rows))),
             palette: ColorPalette::dark(),
             typography: Typography::default_mono(),
             focus_handle: cx.focus_handle(),
+        };
+
+        cx.spawn(async move |this, cx| {
+            loop {
+                cx.background_executor()
+                    .timer(std::time::Duration::from_millis(16))
+                    .await;
+                if this.update(cx, |_, cx| cx.notify()).is_err() {
+                    break;
+                }
+            }
         })
+        .detach();
+
+        Ok(pane)
     }
 
     pub fn drain_pty_into_state(&self) {

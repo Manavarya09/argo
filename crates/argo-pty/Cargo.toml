@@ -1,0 +1,13 @@
+[package]
+name = "argo-pty"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+portable-pty.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full", "test-util"] }

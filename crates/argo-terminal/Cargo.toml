@@ -1,0 +1,8 @@
+[package]
+name = "argo-terminal"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+alacritty_terminal.workspace = true
+tracing.workspace = true

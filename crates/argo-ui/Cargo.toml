@@ -1,0 +1,13 @@
+[package]
+name = "argo-ui"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+argo-theme = { path = "../argo-theme" }
+argo-terminal = { path = "../argo-terminal" }
+argo-pty = { path = "../argo-pty" }
+gpui.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+tracing.workspace = true

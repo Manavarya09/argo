@@ -24,3 +24,16 @@ tracing-subscriber = "0.3"
 portable-pty = "0.8"
 alacritty_terminal = "0.24"
 gpui = "0.2"
+
+[workspace.metadata.bundle]
+name = "Argo"
+identifier = "dev.argo.app"
+icon = ["assets/icon.icns"]
+version = "0.1.0"
+copyright = "Argo contributors"
+category = "DeveloperTool"
+short_description = "Every AI agent on one ship."
+long_description = """
+Argo is a native multi-agent terminal that auto-detects every AI coding agent
+authenticated on your machine.
+"""

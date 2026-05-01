@@ -6,3 +6,9 @@ edition.workspace = true
 [dependencies]
 alacritty_terminal.workspace = true
 tracing.workspace = true
+
+# Enable rustix's `std` feature so that the polyfill in rustix-openpty 0.1.1
+# (transitive via alacritty_terminal's tty module on non-Linux targets) can
+# satisfy AsFd bounds against std::os::fd::OwnedFd. Without this, the
+# upstream alacritty_terminal 0.24.2 fails to compile on macOS.
+rustix = { version = "0.38", default-features = false, features = ["std", "fs", "termios"] }

@@ -1,1 +1,2 @@
-pub fn placeholder() {}
+mod state;
+pub use state::{Cell, TerminalState};

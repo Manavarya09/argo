@@ -1,0 +1,20 @@
+[package]
+name = "argo-tui"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ratatui = "0.28"
+crossterm = "0.28"
+anyhow.workspace = true
+tokio = { version = "1", features = ["full"] }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+dirs = "5"
+
+[[bin]]
+name = "argo-tui"
+path = "src/main.rs"

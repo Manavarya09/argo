@@ -6,6 +6,7 @@ members = [
     "crates/argo-pty",
     "crates/argo-terminal",
     "crates/argo-ui",
+    "crates/argo-tui",
 ]
 
 [workspace.package]

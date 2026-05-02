@@ -8,10 +8,12 @@ use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use ratatui::backend::CrosstermBackend;
+use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::Style;
 use ratatui::widgets::{Block, Borders};
 use ratatui::Terminal;
 
+mod sidebar;
 mod theme;
 
 type Tui = Terminal<CrosstermBackend<Stdout>>;
@@ -49,16 +51,24 @@ fn main() -> Result<()> {
 
 fn run(terminal: &mut Tui) -> Result<()> {
     loop {
+        let rows = sidebar::default_rows();
         terminal.draw(|frame| {
             let area = frame.area();
             let bg = Block::default().style(Style::default().bg(theme::BG).fg(theme::FG));
             frame.render_widget(bg, area);
-            let block = Block::default()
+
+            let chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Length(22), Constraint::Min(0)])
+                .split(area);
+
+            sidebar::render_sidebar(frame, chunks[0], &rows);
+
+            let content = Block::default()
                 .title(" Argo ")
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::DIVIDER))
+                .borders(Borders::NONE)
                 .title_style(Style::default().fg(theme::ACCENT));
-            frame.render_widget(block, area);
+            frame.render_widget(content, chunks[1]);
         })?;
 
         if event::poll(Duration::from_millis(100))? {

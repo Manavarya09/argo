@@ -91,6 +91,19 @@ impl Pane {
             cmd = event.keystroke.modifiers.platform,
             "pane key event"
         );
+
+        // ⌘V (or Ctrl+V on Linux/Win): paste from clipboard.
+        if event.keystroke.modifiers.platform && event.keystroke.key == "v" {
+            if let Some(item) = cx.read_from_clipboard() {
+                if let Some(text) = item.text() {
+                    let mut session = self.session.lock().unwrap();
+                    let _ = session.write(text.as_bytes());
+                    cx.notify();
+                    return;
+                }
+            }
+        }
+
         let bytes = key_event_to_bytes(event);
         if !bytes.is_empty() {
             let mut session = self.session.lock().unwrap();

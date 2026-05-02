@@ -14,6 +14,7 @@ use ratatui::style::Style;
 use ratatui::widgets::Block;
 use ratatui::Terminal;
 
+mod auth;
 mod input;
 mod mock;
 mod panes;
@@ -55,7 +56,7 @@ fn main() -> Result<()> {
 }
 
 fn run(terminal: &mut Tui) -> Result<()> {
-    let rows = sidebar::default_rows();
+    let rows = auth::detect_all();
     let mut grid = panes::default_grid();
     grid[0].focused = true;
     let mut input = input::InputField::default();

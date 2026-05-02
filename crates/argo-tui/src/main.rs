@@ -1,5 +1,6 @@
 use std::io::{self, Stdout};
-use std::time::Duration;
+use std::sync::atomic::AtomicUsize;
+use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
@@ -14,6 +15,7 @@ use ratatui::widgets::Block;
 use ratatui::Terminal;
 
 mod input;
+mod mock;
 mod panes;
 mod sidebar;
 mod statusbar;
@@ -59,13 +61,19 @@ fn run(terminal: &mut Tui) -> Result<()> {
     let mut input = input::InputField::default();
     let mut status = statusbar::StatusBar { agents: grid.len(), estimated_spend_usd: 0.0 };
 
+    // One counter per pane to drive its mock script.
+    let counters: Vec<AtomicUsize> = grid.iter().map(|_| AtomicUsize::new(0)).collect();
+    // Stagger start times so panes feel alive but not in lockstep.
+    let stagger_ms = [200u64, 350, 500, 650];
+    let start = Instant::now();
+    let mut last_ticks: Vec<Instant> = grid.iter().map(|_| start).collect();
+
     loop {
         terminal.draw(|frame| {
             let area = frame.area();
             let bg = Block::default().style(Style::default().bg(theme::BG).fg(theme::FG));
             frame.render_widget(bg, area);
 
-            // Outer split: sidebar | (panes + input + status)
             let outer = Layout::default()
                 .direction(Direction::Horizontal)
                 .constraints([Constraint::Length(22), Constraint::Min(0)])
@@ -73,7 +81,6 @@ fn run(terminal: &mut Tui) -> Result<()> {
 
             sidebar::render_sidebar(frame, outer[0], &rows);
 
-            // Right column: panes (rest), input row (1), status row (1)
             let right = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
@@ -88,7 +95,19 @@ fn run(terminal: &mut Tui) -> Result<()> {
             status.render(frame, right[2]);
         })?;
 
-        if event::poll(Duration::from_millis(100))? {
+        // Drive mock streaming: each pane produces a new line every ~stagger ms.
+        let now = Instant::now();
+        for (i, pane) in grid.iter_mut().enumerate() {
+            let interval = Duration::from_millis(stagger_ms[i % stagger_ms.len()]);
+            if now.duration_since(last_ticks[i]) >= interval {
+                if let Some(line) = mock::next_line(pane.provider, &counters[i]) {
+                    pane.append(line);
+                    last_ticks[i] = now;
+                }
+            }
+        }
+
+        if event::poll(Duration::from_millis(60))? {
             if let Event::Key(key) = event::read()? {
                 if should_quit(key) {
                     return Ok(());
@@ -105,7 +124,6 @@ fn run(terminal: &mut Tui) -> Result<()> {
                         if !prompt.is_empty() {
                             let idx = grid.iter().position(|p| p.focused).unwrap_or(0);
                             grid[idx].append(format!("> {}", prompt));
-                            // Mock cost increment: every prompt adds a few cents.
                             status.estimated_spend_usd += 0.04;
                         }
                     }

@@ -7,7 +7,9 @@
 //! for using their own credentials.
 
 mod claude;
+mod ollama;
 mod status;
 
 pub use claude::ClaudeDetector;
+pub use ollama::OllamaDetector;
 pub use status::AuthStatus;

@@ -1,5 +1,13 @@
 //! Argo auth detector — scans local credentials for known AI providers.
 //!
-//! Stub. Detectors land in subsequent commits.
+//! Detectors run independently per provider and return a uniform
+//! [`AuthStatus`]. They never read or transmit the credential contents
+//! themselves; they only check existence and non-emptiness of known
+//! credential files. The actual SDKs each provider ships are responsible
+//! for using their own credentials.
 
-pub fn placeholder() {}
+mod claude;
+mod status;
+
+pub use claude::ClaudeDetector;
+pub use status::AuthStatus;

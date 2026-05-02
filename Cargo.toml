@@ -6,7 +6,12 @@ members = [
     "crates/argo-pty",
     "crates/argo-terminal",
     "crates/argo-ui",
+    "crates/argo-agent-registry",
+    "crates/argo-auth-detector",
+    "crates/argo-relay-v2",
+    "crates/argo-yolo-router",
 ]
+exclude = ["vendor/wezterm"]
 
 [workspace.package]
 version = "0.1.0"
@@ -24,6 +29,12 @@ tracing-subscriber = "0.3"
 portable-pty = "0.8"
 alacritty_terminal = "0.24"
 gpui = "0.2"
+dirs = "5"
+tempfile = "3"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+regex = "1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 
 [workspace.metadata.bundle]
 name = "Argo"

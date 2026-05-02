@@ -129,6 +129,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "argo-agent-registry"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+]
+
+[[package]]
+name = "argo-auth-detector"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dirs 5.0.1",
+ "tempfile",
+]
+
+[[package]]
 name = "argo-pty"
 version = "0.1.0"
 dependencies = [
@@ -136,6 +152,13 @@ dependencies = [
  "portable-pty",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "argo-relay-v2"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
 ]
 
 [[package]]
@@ -167,6 +190,13 @@ dependencies = [
  "gpui",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "argo-yolo-router"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
 ]
 
 [[package]]

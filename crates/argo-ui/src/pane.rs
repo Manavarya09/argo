@@ -223,17 +223,24 @@ impl Render for Pane {
 }
 
 fn key_event_to_bytes(event: &KeyDownEvent) -> Vec<u8> {
-    let key = &event.keystroke.key;
-    let mods = &event.keystroke.modifiers;
+    keystroke_to_bytes(
+        &event.keystroke.key,
+        event.keystroke.modifiers.control,
+        event.keystroke.key_char.as_deref(),
+    )
+}
 
-    if mods.control && key.len() == 1 {
+/// Pure mapping from keystroke fields to PTY bytes. Testable without
+/// constructing a full GPUI `KeyDownEvent`.
+fn keystroke_to_bytes(key: &str, ctrl: bool, key_char: Option<&str>) -> Vec<u8> {
+    if ctrl && key.len() == 1 {
         let c = key.chars().next().unwrap().to_ascii_uppercase();
         if ('A'..='Z').contains(&c) {
             return vec![(c as u8) - b'A' + 1];
         }
     }
 
-    match key.as_str() {
+    match key {
         "enter" => return b"\r".to_vec(),
         "tab" => return b"\t".to_vec(),
         "backspace" => return b"\x7f".to_vec(),
@@ -247,11 +254,56 @@ fn key_event_to_bytes(event: &KeyDownEvent) -> Vec<u8> {
         _ => {}
     }
 
-    if let Some(text) = &event.keystroke.key_char {
+    if let Some(text) = key_char {
         return text.as_bytes().to_vec();
     }
     if key.chars().count() == 1 {
         return key.as_bytes().to_vec();
     }
     Vec::new()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::keystroke_to_bytes;
+
+    #[test]
+    fn backspace_sends_del() {
+        assert_eq!(keystroke_to_bytes("backspace", false, None), b"\x7f");
+    }
+
+    #[test]
+    fn enter_sends_cr() {
+        assert_eq!(keystroke_to_bytes("enter", false, None), b"\r");
+    }
+
+    #[test]
+    fn ctrl_c_sends_etx() {
+        assert_eq!(keystroke_to_bytes("c", true, Some("c")), b"\x03");
+    }
+
+    #[test]
+    fn ctrl_d_sends_eot() {
+        assert_eq!(keystroke_to_bytes("d", true, Some("d")), b"\x04");
+    }
+
+    #[test]
+    fn ctrl_l_sends_ff() {
+        assert_eq!(keystroke_to_bytes("l", true, Some("l")), b"\x0c");
+    }
+
+    #[test]
+    fn arrow_up_sends_csi_a() {
+        assert_eq!(keystroke_to_bytes("up", false, None), b"\x1b[A");
+    }
+
+    #[test]
+    fn tab_sends_ht() {
+        assert_eq!(keystroke_to_bytes("tab", false, None), b"\t");
+    }
+
+    #[test]
+    fn plain_ascii_a_sends_a() {
+        assert_eq!(keystroke_to_bytes("a", false, Some("a")), b"a");
+    }
 }

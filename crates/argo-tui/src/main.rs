@@ -13,6 +13,7 @@ use ratatui::style::Style;
 use ratatui::widgets::{Block, Borders};
 use ratatui::Terminal;
 
+mod panes;
 mod sidebar;
 mod theme;
 
@@ -50,8 +51,11 @@ fn main() -> Result<()> {
 }
 
 fn run(terminal: &mut Tui) -> Result<()> {
+    let rows = sidebar::default_rows();
+    let mut grid = panes::default_grid();
+    grid[0].focused = true;
+
     loop {
-        let rows = sidebar::default_rows();
         terminal.draw(|frame| {
             let area = frame.area();
             let bg = Block::default().style(Style::default().bg(theme::BG).fg(theme::FG));
@@ -63,18 +67,19 @@ fn run(terminal: &mut Tui) -> Result<()> {
                 .split(area);
 
             sidebar::render_sidebar(frame, chunks[0], &rows);
-
-            let content = Block::default()
-                .title(" Argo ")
-                .borders(Borders::NONE)
-                .title_style(Style::default().fg(theme::ACCENT));
-            frame.render_widget(content, chunks[1]);
+            panes::render_grid(frame, chunks[1], &grid);
         })?;
 
         if event::poll(Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
                 if should_quit(key) {
                     return Ok(());
+                }
+                if key.code == KeyCode::Tab {
+                    let len = grid.len();
+                    let focused_idx = grid.iter().position(|p| p.focused).unwrap_or(0);
+                    grid[focused_idx].focused = false;
+                    grid[(focused_idx + 1) % len].focused = true;
                 }
             }
         }

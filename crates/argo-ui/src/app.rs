@@ -32,6 +32,7 @@ impl ArgoApp {
                 .unwrap();
             window
                 .update(cx, |view, window, cx| {
+                    window.set_window_title("Argo");
                     let handle = view.pane.read(cx).focus_handle(cx);
                     window.focus(&handle);
                 })

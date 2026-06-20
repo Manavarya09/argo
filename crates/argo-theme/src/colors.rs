@@ -15,6 +15,9 @@ impl Color {
         if hex.len() != 6 {
             return Err(ColorError::InvalidLength);
         }
+        if !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
+            return Err(ColorError::InvalidDigit);
+        }
         let r = u8::from_str_radix(&hex[0..2], 16).map_err(|_| ColorError::InvalidDigit)?;
         let g = u8::from_str_radix(&hex[2..4], 16).map_err(|_| ColorError::InvalidDigit)?;
         let b = u8::from_str_radix(&hex[4..6], 16).map_err(|_| ColorError::InvalidDigit)?;
